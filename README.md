@@ -1,5 +1,5 @@
 # 420sim420 
-# this is my project witch present a new technology of 420      simulator
+# this is my project what present a new technology of 420      simulator
 ```
 Now I will show you what about this simulator(Random text)
 ```
