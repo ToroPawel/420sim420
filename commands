@@ -1,0 +1,499 @@
+using System;
+using System.Collections;
+
+namespace Proc420420
+{
+    public class Commands
+    {
+        public static void PRINT(string[] command)
+        {
+            switch(command[1])
+            {
+                case "R":
+                    Storage.StorageTools.DisplayGeneralRegistry();
+                    return;
+
+                case "M":
+                    Storage.StorageTools.DisplayMemory();
+                    return;
+                
+                default:
+                    throw new ArgumentException("Wrong PRING syntax");
+            }
+        }
+        
+        public static void HELP(string[] command)
+        {
+            if(command.Length == 1) //General help and all commands
+            {
+                Console.ForegroundColor = ConsoleColor.DarkYellow;
+                Console.WriteLine("Intel 8086 Sim by AbexCorp");
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.Write(    "Write ");
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.Write(    "HELP [Command Name]");
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.WriteLine(" for more help.");
+                Console.WriteLine();
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine("Available commands:");
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.WriteLine("    HELP   -  Displays help or command help");
+                Console.WriteLine("    PRINT  -  Dysplays data in console");
+                Console.WriteLine("    MOV    -  Moves values into registries");
+                Console.WriteLine("    XCHG   -  Changes valuse between registries");
+                Console.WriteLine("    CLS    -  Clears console");
+                Console.WriteLine("    EXIT   -  Exits program");
+            }
+            else if(command.Length == 2) //Help [command]
+            {
+                switch(command[1])
+                {
+                    case "MOV":
+                        SubCommands.MOV.HELP();
+                        return;
+
+                    case "XCHG":
+                        SubCommands.XCHG.HELP();
+                        return;
+
+                    case "PRINT":
+                        SubCommands.PRINT.HELP();
+                        return;
+
+                    case "CLS":
+                    case "EXIT":
+                    case "HELP":
+                        Console.WriteLine("No further help for this command");
+                        return;
+
+                    default:
+                        throw new ArgumentException("Wrong HELP syntax or unknown command");
+                }
+            } 
+            else
+            {
+                throw new ArgumentException("Wrong HELP syntax");
+            }
+        }
+
+        public static void CLS()
+        {
+            Console.Clear();
+        }
+
+        public static void EXIT()
+        {
+            Environment.Exit(0);
+        }
+
+
+        public static void MOV(string[] command)
+        {
+            //FROM Reg16
+            if(" AX BX CX DX ".Contains(command[1]))
+            {
+                if(" AX BX CX DX ".Contains(command[2])) //Reg16 - Reg16
+                {
+                    SubCommands.MOV.MOVFrom16To16(command[1],command[2]);
+                    return;
+                }
+                else if(command[2] == "MEM") //Reg16 - Mem
+                {
+                    SubCommands.MOV.MOVFrom16ToMEM(command[1]);
+                    return;
+                }
+                else
+                    throw new ArgumentException("Wrong MOV syntax");
+            }
+            //FROM Reg8
+            else if(" AH AL BH BL CH CL DH DL ".Contains(command[1]))
+            {
+                if(" AH AL BH BL CH CL DH DL ".Contains(command[2])) //Reg8 - Reg8
+                {
+                    SubCommands.MOV.MOVFrom8To8(command[1],command[2]);
+                    return;
+                }
+                else if(command[2] == "MEM") //Reg8 - Mem
+                {
+                    SubCommands.MOV.MOVFrom8ToMEM(command[1]);
+                    return;
+                }
+                else if(" AX BX CX DX ".Contains(command[2])) //Reg8 - Reg16
+                {
+                    SubCommands.MOV.MOVFrom8To16(command[1],command[2]);
+                    return;
+                }
+                else
+                    throw new ArgumentException("Wrong MOV syntax");
+            }
+            //FROM Mem
+            else if(command[1].Contains("MEM."))
+            {
+                string[] memmoryId = command[1].Split(".",StringSplitOptions.RemoveEmptyEntries);
+                if(long.TryParse(memmoryId[1], out long number) == false || memmoryId.Length != 2 || !Storage.StorageTools.MemoryExists(number))
+                    throw new KeyNotFoundException("Wrong memory index");
+                
+                if(" AX BX CX DX ".Contains(command[2])) //Mem - Reg16
+                {
+                    SubCommands.MOV.MOVFromMEMTo16(number, command[2]);
+                    return;
+                }
+                else if(" AH AL BH BL CH CL DH DL ".Contains(command[2])) //Mem - Reg8
+                {
+                    SubCommands.MOV.MOVFromMEMTo8(number, command[2]);
+                    return;
+                }
+                else
+                    throw new ArgumentException("Wrong MOV syntax");
+            }
+            //FROM Constant
+            else if( int.TryParse(command[1], out int number) )
+            {
+                if(" AX BX CX DX ".Contains(command[2])) //Con - Reg16
+                {
+                    if(number > UInt16.MinValue && number < UInt16.MaxValue)
+                        SubCommands.MOV.MOVFromCONto16((UInt16)number, command[2]);
+                    else
+                        throw new ArgumentOutOfRangeException("Number is to big for UInt16");
+                }
+                else if(" AH AL BH BL CH CL DH DL ".Contains(command[2])) //Con - Reg8
+                {
+                    if(number > byte.MinValue && number < byte.MaxValue)
+                        SubCommands.MOV.MOVFromCONto8((byte)number, command[2]);
+                    else
+                        throw new ArgumentOutOfRangeException("Number is to big for UInt8");
+                }
+                else if(command[2] == "MEM") //Con - Mem
+                {
+                    SubCommands.MOV.MOVFromCONtoMEM(number);
+                }
+                else
+                    throw new ArgumentException("Wrong MOV syntax");
+            }
+            else
+                throw new ArgumentException("Wrong MOV syntax");  
+        }
+
+
+        public static void XCHG(string[] command)
+        {
+            //From Reg16
+            if(" AX BX CX DX ".Contains(command[1]) && " AX BX CX DX ".Contains(command[2])) //Reg16 - Reg16
+            {
+                SubCommands.XCHG.XCHGFrom16To16(command[1],command[2]);
+                return;
+            }
+            //From Reg8
+            else if(" AH AL BH BL CH CL DH DL ".Contains(command[1]) && " AH AL BH BL CH CL DH DL ".Contains(command[2])) //Reg8 - Reg8
+            {
+                SubCommands.XCHG.XCHGFrom8To8(command[1],command[2]);
+                return;
+            }
+            //From Mem
+            else if(command[1].Contains("MEM."))
+            {
+                string[] memmoryId = command[1].Split(".",StringSplitOptions.RemoveEmptyEntries);
+                if(long.TryParse(memmoryId[1], out long number) == false || memmoryId.Length != 2  || !Storage.StorageTools.MemoryExists(number))
+                    throw new KeyNotFoundException("Wrong memory index");
+                if(" AX BX CX DX ".Contains(command[2])) //Mem - Reg16
+                {
+                    SubCommands.XCHG.XCHGFromMEMTo16(number, command[2]);
+                    return;
+                }
+                else if(" AH AL BH BL CH CL DH DL ".Contains(command[2])) //Mem - Reg8
+                {
+                    SubCommands.XCHG.XCHGFromMEMTo8(number, command[2]);
+                    return;
+                }
+                else
+                    throw new ArgumentException("Wrong XCHG syntax");
+            }
+            else
+                throw new ArgumentException("Wrong XCHG syntax");
+
+        }
+
+
+
+
+
+
+        private class SubCommands
+        {
+            public class MOV
+            {
+                public static void HELP()
+                {
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.Write("MOV");
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.WriteLine(    " - Move value from register/memory to register/memory"    );
+                    Console.WriteLine();
+                    Console.WriteLine(    "Handled operations:"    );
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine(    "     FROM          TO"    );
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.WriteLine(    "     Reg16     -   Reg16"    );
+                    Console.WriteLine(    "     Reg16     -   Memory"    );
+                    Console.WriteLine(    "     Reg8      -   Reg8"    );
+                    Console.WriteLine(    "     Reg8      -   Reg16"    );
+                    Console.WriteLine(    "     Reg8      -   Memory"    );
+                    Console.WriteLine(    "     Memory    -   Reg16"    );
+                    Console.WriteLine(    "     Memory    -   Reg8"    );
+                    Console.WriteLine(    "     Constant  -   Reg16"    );
+                    Console.WriteLine(    "     Constant  -   Reg8"    );
+                    Console.WriteLine(    "     Constant  -   Memory"    );
+                    Console.WriteLine();
+                    Console.WriteLine();
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.Write(        "SyntaX:");
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.WriteLine(    " MOV [1/2/3] [4/5]"    );
+                    Console.WriteLine(    "    1: [Name of registry] (ex. AX, DH, BL)"    );
+                    Console.WriteLine(    "    2: MEM.[Memory index] (ex. 15, 2347, 0, 2)"    );
+                    Console.WriteLine(    "    3: [Number] (ex. 0, 16267, 125, 65148)"    );
+                    Console.WriteLine();
+                    Console.WriteLine(    "    4: [Name of registry] (ex. AX, DH, BL)"    );
+                    Console.WriteLine(    "    5: [MEM]"    );
+                    Console.WriteLine();
+                    Console.WriteLine();
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine(    "Example commands:"    );
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.WriteLine(    "    MOV AX MEM"    );
+                    Console.WriteLine(    "    MOV CH DL"    );
+                    Console.WriteLine(    "    MOV BL DX"    );
+                    Console.WriteLine(    "    MOV CL MEM"    );
+                    Console.WriteLine(    "    MOV MEM.156 AX"    );
+                    Console.WriteLine(    "    MOV MEM.1 DH"    );
+                }
+
+
+                public static void MOVFrom16To16(string from, string to)
+                {
+                    Storage.generalRegistry[to].Value = Storage.generalRegistry[from].Value;
+                }
+
+                public static void MOVFrom16ToMEM(string from)
+                {
+                    Storage.memory.Add(Storage.StorageTools.OperationCounter,Storage.generalRegistry[from].Value);
+                }
+
+                public static void MOVFrom8To8(string from, string to)
+                {
+                    if( to[1] == 'H' && from[1] == 'H')
+                        Storage.generalRegistry[$"{to[0]}X"].H = Storage.generalRegistry[$"{from[0]}X"].H;
+                    if( to[1] == 'H' && from[1] == 'L')
+                        Storage.generalRegistry[$"{to[0]}X"].H = Storage.generalRegistry[$"{from[0]}X"].L;
+                    if( to[1] == 'L' && from[1] == 'L')
+                        Storage.generalRegistry[$"{to[0]}X"].L = Storage.generalRegistry[$"{from[0]}X"].L;
+                    if( to[1] == 'L' && from[1] == 'H')
+                        Storage.generalRegistry[$"{to[0]}X"].L = Storage.generalRegistry[$"{from[0]}X"].H;
+                }
+
+                public static void MOVFrom8To16(string from, string to)
+                {
+                    if(from[1] == 'H')
+                        Storage.generalRegistry[to].Value = Storage.generalRegistry[$"{from[0]}X"].H;
+                    if(from[1] == 'L')
+                        Storage.generalRegistry[to].Value = Storage.generalRegistry[$"{from[0]}X"].L;
+                }
+
+                public static void MOVFrom8ToMEM(string from)
+                {
+                    if(from[1] == 'H')
+                        Storage.memory.Add(Storage.StorageTools.OperationCounter,Storage.generalRegistry[$"{from[0]}X"].H);
+                    if(from[1] == 'L')
+                        Storage.memory.Add(Storage.StorageTools.OperationCounter,Storage.generalRegistry[$"{from[0]}X"].L);
+                }
+
+                public static void MOVFromMEMTo16(long from, string to)
+                {
+                    if(UInt16.TryParse(Storage.memory[from].ToString(), out UInt16 number))
+                    {
+                        Storage.generalRegistry[to].Value = number;
+                    }
+                    else
+                    {
+                        throw new ArgumentOutOfRangeException("Number is to big for UInt16");
+                    }
+                }
+
+                public static void MOVFromMEMTo8(long from, string to)
+                {
+                    if(byte.TryParse(Storage.memory[from].ToString(), out byte number))
+                    {
+                        if(to[1] == 'H')
+                            Storage.generalRegistry[$"{to[0]}X"].H = number;
+                        else if(to[1] == 'L')
+                            Storage.generalRegistry[$"{to[0]}X"].L = number;
+                    }
+                    else
+                    {
+                        throw new ArgumentOutOfRangeException("Number is to big for UInt8");
+                    }
+                }
+
+                public static void MOVFromCONto16(UInt16 from, string to)
+                {
+                    Storage.generalRegistry[to].Value = from;
+                }
+
+                public static void MOVFromCONto8(byte from, string to)
+                { 
+                    // if(to[1] == 'H')
+                    //     Storage.generalRegistry[to].H = from;
+                    // if(to[1] == 'L')
+                    //     Storage.generalRegistry[to].L = from;
+
+                    if(to[1] == 'H')
+                        Storage.generalRegistry[$"{to[0]}X"].H = from;
+                    if(to[1] == 'L')
+                        Storage.generalRegistry[$"{to[0]}X"].L = from;
+                }
+
+                public static void MOVFromCONtoMEM(int from)
+                {
+                    Storage.memory.Add(Storage.StorageTools.OperationCounter,from);
+                }
+            }
+            
+            public class XCHG
+            {
+                public static void HELP()
+                {
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.Write("XCHG");
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.WriteLine(    " - Exchange values of register/memory with register/memory"    );
+                    Console.WriteLine();
+                    Console.WriteLine(    "Handled operations:"    );
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine(    "     CHANGE        WITH"    );
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.WriteLine(    "     Reg16     -   Reg16"    );
+                    Console.WriteLine(    "     Reg8      -   Reg8"    );
+                    Console.WriteLine(    "     Memory    -   Reg16"    );
+                    Console.WriteLine(    "     Memory    -   Reg8"    );
+                    Console.WriteLine();
+                    Console.WriteLine();
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.Write(        "SyntaX:");
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.WriteLine(    " XCHG [1/2] [3]"    );
+                    Console.WriteLine(    "    1: [Name of registry] (ex. AX, DH, BL)"    );
+                    Console.WriteLine(    "    2: MEM.[Memory index] (ex. 15, 2347, 0, 2)"    );
+                    Console.WriteLine();
+                    Console.WriteLine(    "    3: [Name of registry] (ex. AX, DH, BL)"    );
+                    Console.WriteLine();
+                    Console.WriteLine();
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine(    "Example commands:"    );
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.WriteLine(    "    XCHG AX DX"    );
+                    Console.WriteLine(    "    XCHG BH BL"    );
+                    Console.WriteLine(    "    XCHG CH AL"    );
+                    Console.WriteLine(    "    XCHG MEM.11 DH"    );
+                    Console.WriteLine(    "    XCHG MEM.51 CX"    );
+                }
+
+
+                public static void XCHGFrom16To16(string from, string to)
+                {
+                    
+                    UInt16 exchange = Storage.generalRegistry[from].Value;
+                    Storage.generalRegistry[from].Value = Storage.generalRegistry[to].Value;
+                    Storage.generalRegistry[to].Value = exchange;
+                }
+
+                public static void XCHGFrom8To8(string from, string to)
+                {
+                    byte exchange = 0;
+                    if( to[1] == 'H' && from[1] == 'H')
+                    {
+                        exchange = Storage.generalRegistry[$"{to[0]}X"].H;
+                        Storage.generalRegistry[$"{to[0]}X"].H = Storage.generalRegistry[$"{from[0]}X"].H;
+                        Storage.generalRegistry[$"{from[0]}X"].H = exchange;
+                    }
+                    else if( to[1] == 'H' && from[1] == 'L')
+                    {
+                        exchange = Storage.generalRegistry[$"{to[0]}X"].H;
+                        Storage.generalRegistry[$"{to[0]}X"].H = Storage.generalRegistry[$"{from[0]}X"].L;
+                        Storage.generalRegistry[$"{from[0]}X"].L = exchange;
+                    }
+                    else if( to[1] == 'L' && from[1] == 'L')
+                    {
+                        exchange = Storage.generalRegistry[$"{to[0]}X"].L;
+                        Storage.generalRegistry[$"{to[0]}X"].L = Storage.generalRegistry[$"{from[0]}X"].L;
+                        Storage.generalRegistry[$"{from[0]}X"].L = exchange;
+                    }
+                    else if( to[1] == 'L' && from[1] == 'H')
+                    {
+                        exchange = Storage.generalRegistry[$"{to[0]}X"].L;
+                        Storage.generalRegistry[$"{to[0]}X"].L = Storage.generalRegistry[$"{from[0]}X"].H;
+                        Storage.generalRegistry[$"{from[0]}X"].H = exchange;
+                    }
+                    else
+                        throw new ArgumentException("Wrong XCHG syntax");
+                }
+
+                public static void XCHGFromMEMTo16(long from, string to)
+                {
+                    if(UInt16.TryParse(Storage.memory[from].ToString(), out UInt16 number))
+                    {
+                        UInt16 exchange = Storage.generalRegistry[to].Value;
+                        Storage.generalRegistry[to].Value = number;
+                        Storage.memory[from] = exchange;
+                    }
+                    else
+                    {
+                        throw new ArgumentOutOfRangeException("Number is to big for UInt16");
+                    }
+                }
+
+                public static void XCHGFromMEMTo8(long from, string to)
+                {
+                    if(byte.TryParse(Storage.memory[from].ToString(), out byte number))
+                    {
+                        byte exchange = 0;
+                        if(to[1] == 'H')
+                        {
+                            exchange = Storage.generalRegistry[$"{to[0]}X"].H;
+                            Storage.generalRegistry[$"{to[0]}X"].H = number;
+                            Storage.memory[from] = exchange;
+                        }
+                        else if(to[1] == 'L')
+                        {
+                            exchange = Storage.generalRegistry[$"{to[0]}X"].L;
+                            Storage.generalRegistry[$"{to[0]}X"].L = number;
+                            Storage.memory[from] = exchange;
+                        }
+                    }
+                    else
+                    {
+                        throw new ArgumentOutOfRangeException("Number is to big for UInt8");
+                    }
+                }
+            }
+        
+            public class PRINT
+            {
+                public static void HELP()
+                {
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.Write("PRINT");
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.WriteLine(    " - Display selected values in console"    );
+                    Console.WriteLine();
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.Write(        "SyntaX:");
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.WriteLine(    " PRINT [1/2]"    );
+                    Console.WriteLine(    "    1: [R] Display general registry"    );
+                    Console.WriteLine(    "    2: [M] Display memory"    );
+                }
+            }
+        }
+    }
+}

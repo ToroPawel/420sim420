@@ -1,0 +1,148 @@
+using System;
+using System.Collections;
+
+namespace Proc420420
+{
+    public class CommandRecevier
+    {
+        /*
+                //HELP (COMMAND)
+                //PRINT (history)
+                //CLEAR (history)
+                //ADD number []
+                //SUB number []
+        */
+        public static string ReadCommand()
+        {
+            Console.WriteLine();
+            Console.ForegroundColor = ConsoleColor.Green;
+            string? command = Console.ReadLine();
+                if(command == null)
+                    command = " XXXXXXX ";
+            Console.ForegroundColor = ConsoleColor.Gray;
+            return command;
+        }
+
+        public static void WriteError(string message)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(message);
+            Console.ForegroundColor = ConsoleColor.Gray;
+        }
+
+        public static void RecognizeCommand(string command)
+        {
+            string[] commandKeywords = command.Trim().ToUpper().Split(" ", StringSplitOptions.RemoveEmptyEntries);
+
+            switch(commandKeywords[0])
+            {
+                case "MOV":
+                    if(commandKeywords.Length != 3)
+                    {
+                        WriteError("Wrong MOV syntax"); //throw new ArgumentException("Wrong MOV syntax");
+                        return;
+                    }
+                    try
+                    {
+                        Commands.MOV(commandKeywords);
+                        Storage.StorageTools.AdvanceOperationCounter();
+                    }
+                    catch(ArgumentOutOfRangeException)
+                    {
+                        WriteError("Number is to large for this registry");
+                        Storage.StorageTools.WithdrawOperationCounter();
+                    }
+                    catch(ArgumentException)
+                    {
+                        WriteError("Wrong MOV syntax");
+                        Storage.StorageTools.WithdrawOperationCounter();
+                    }
+                    catch(KeyNotFoundException)
+                    {
+                        WriteError("Wrong memory index");
+                        Storage.StorageTools.WithdrawOperationCounter();
+                    }
+                    return;
+
+
+
+                case "XCHG":
+                    if(commandKeywords.Length != 3)
+                    {
+                        WriteError("Wrong XCHG syntax"); //throw new ArgumentException("Wrong XCHG syntax");
+                        return;
+                    }
+                    try
+                    {
+                        Commands.XCHG(commandKeywords);
+                        Storage.StorageTools.AdvanceOperationCounter();
+                        return;
+                    }
+                    catch(ArgumentOutOfRangeException)
+                    {
+                        WriteError("Number is to large for this registry");
+                        Storage.StorageTools.WithdrawOperationCounter();
+                    }
+                    catch(ArgumentException)
+                    {
+                        WriteError("Wrong XCHG syntax");
+                        Storage.StorageTools.WithdrawOperationCounter();
+                    }
+                    catch(KeyNotFoundException)
+                    {
+                        WriteError("Wrong memory index");
+                        Storage.StorageTools.WithdrawOperationCounter();
+                    }
+                    return;
+
+
+
+                case "EXIT":
+                    if(commandKeywords.Length != 1)
+                        WriteError("Wrong EXIT syntax"); //throw new ArgumentException("Wrong EXIT syntax");
+                    Commands.EXIT();
+                    return;
+
+
+                case "HELP":
+                    try
+                    {
+                        Commands.HELP(commandKeywords);
+                    }
+                    catch(ArgumentException)
+                    {
+                        WriteError("Wrong HELP syntax or unknown command");
+                        return;
+                    }
+                    return;
+
+
+                case "CLS":
+                    if(commandKeywords.Length != 1)
+                        WriteError("Wrong CLS syntax"); //throw new ArgumentException("Wrong CLS syntax");
+                    Commands.CLS();
+                    return;
+
+
+                case "PRINT":
+                    if(commandKeywords.Length != 2)
+                        WriteError("Wrong PRINT syntax"); //throw new ArgumentException("Wrong CLS syntax");
+                    try
+                    {
+                        Commands.PRINT(commandKeywords);
+                    }
+                    catch(ArgumentException)
+                    {
+                        WriteError("Wrong PRINT syntax");
+                    }
+                    return;
+
+
+                default:
+                    WriteError("Unknown command, try using the HELP command");
+                    return;
+            }
+        }
+
+    }
+}

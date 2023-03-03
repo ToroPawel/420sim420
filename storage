@@ -1,0 +1,382 @@
+using System;
+using System.Collections;
+
+namespace Proc420420
+{
+
+    public class Flag
+    {
+        private bool value;
+        public Flag()
+        {
+            value = false;
+        }
+
+        public bool BoolValue
+        {
+            get
+            {
+                return value;
+            }
+            set
+            {
+                if (value != true || value != false)
+                    throw new ArgumentOutOfRangeException("Value out of range <Bool>");
+                this.value = value;
+            }
+        }
+        public byte Value
+        {
+            get
+            {
+                switch(this.value)
+                {
+                    case true:
+                        return 1;
+                    case false:
+                        return 0;
+                }
+            }
+            set
+            {
+                switch(value)
+                {
+                    case 1:
+                        this.value = true;
+                        break;
+                    case 0:
+                        this.value = false;
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException("Value out of range <Bool>");
+                }
+            }
+        }
+    }
+    public class SegmentRegister
+    {
+        private UInt16 value;
+        public SegmentRegister()
+        {
+            value = 0;
+        }
+
+        public UInt16 Value
+        {
+            get
+            {
+                return value;
+            }
+            set
+            {
+                if(value > UInt16.MaxValue || value < UInt16.MinValue)
+                    throw new ArgumentOutOfRangeException("Value out of range <UInt16>");
+                this.value = value;
+            }
+        }
+    }
+
+    public class IndexRegister
+    {
+        private UInt16 value;
+        public IndexRegister()
+        {
+            value = 0;
+        }
+
+        public UInt16 Value
+        {
+            get{return value;}
+            set
+            {
+                if(value > UInt16.MaxValue || value < UInt16.MinValue)
+                    throw new ArgumentOutOfRangeException("Value out of range <UInt16>");
+                this.value = value;
+            }
+        }
+    }
+
+    public class Register
+    {
+
+        private byte h;
+        private byte l;
+        
+        public Register()
+        {
+            h = 0;
+            l = 0;
+        }
+
+
+        public byte H
+        {
+            get{return h;}
+            set
+            {
+                if(value > byte.MaxValue || value < byte.MinValue)
+                    throw new ArgumentOutOfRangeException("H out of range <byte>");
+                h = value;
+            }
+        }
+
+        public byte L
+        {
+            get{return l;}
+            set
+            {
+                if(value > byte.MaxValue || value < byte.MinValue)
+                    throw new ArgumentOutOfRangeException("L out of range <byte>");
+                l = value;
+            }
+        }
+
+        public UInt16 Value
+        {
+            get
+            {
+                //Connects two 8bit (H&&L) and returns combined value
+                Convert.ToString(Convert.ToInt32(H.ToString(),10), 2);
+                string number = Convert.ToString(Convert.ToInt32(L.ToString(),10), 2);
+
+                string? longNumber = null;
+                for(int i = 0; i < 8 - number.Length;i++)
+                    longNumber = longNumber + "0";
+                
+                number = Convert.ToString(Convert.ToInt32(H.ToString(),10), 2) + longNumber + number;
+
+                return UInt16.Parse(Convert.ToString(Convert.ToUInt16(number.ToString(),2), 10));
+            }
+            set
+            {
+                //Splits 16bit value to two 8bit and stores them in H and L
+                if(value > UInt16.MaxValue || value < UInt16.MinValue)
+                    throw new ArgumentOutOfRangeException("Value out of range <UInt16>");
+                string number = Convert.ToString(Convert.ToInt32(value.ToString(),10), 2);
+
+                if(number.Length <= 8)
+                {
+                    H = 0;
+                    L = byte.Parse(Convert.ToString(Convert.ToInt32(number,2), 10));
+                }
+                else
+                {
+                    H = byte.Parse(  Convert.ToString(Convert.ToByte(  number.Substring(0,  8 - (16 - number.Length)),  2  ), 10)  );
+                    L = byte.Parse(  Convert.ToString(Convert.ToByte(  number.Substring(8 - (16 - number.Length),  8),2  ), 10)  );
+                }
+
+            }
+        }
+
+
+    }
+
+
+    public static class Storage
+    {
+        public static Dictionary<string, Register> generalRegistry = new Dictionary<string, Register>();
+        public static Dictionary<string, IndexRegister> indexRegistry = new Dictionary<string, IndexRegister>();
+        public static Dictionary<string, SegmentRegister> segmentRegistry = new Dictionary<string, SegmentRegister>();
+        public static Dictionary<string, Flag> statusRegistry = new Dictionary<string, Flag>();
+        public static Dictionary<long, long> memory = new Dictionary<long, long>();
+
+        public class StorageTools
+        {
+            private static int operationCounter = 0;
+            public static int OperationCounter
+            {
+                get{return operationCounter;}
+            }
+            public static void AdvanceOperationCounter()
+            {
+                operationCounter++;
+            }
+            public static void WithdrawOperationCounter()
+            {
+                operationCounter--;
+            }
+
+
+            public static void InitializeGeneralRegistry()
+            {
+                generalRegistry.Add("AX", new Register()); //Primary Accumulator / Accumulator
+                generalRegistry.Add("BX", new Register()); //Base Accumulator / Base
+                generalRegistry.Add("CX", new Register()); //Counter Accumulator / Counter
+                generalRegistry.Add("DX", new Register()); //Extended Accumulator / Data
+            }
+            public static void InitializeIndexRegistry()
+            {
+                indexRegistry.Add("SI", new IndexRegister()); //Source Index
+                indexRegistry.Add("DI", new IndexRegister()); //Destination Index
+                indexRegistry.Add("SP", new IndexRegister()); //Stack Pointer
+                indexRegistry.Add("BP", new IndexRegister()); //Base Pointer
+                indexRegistry.Add("IP", new IndexRegister()); //Instruction Pointer
+            }
+            public static void InitializeSegmentRegistry()
+            {
+                segmentRegistry.Add("CS", new SegmentRegister()); //Code Segment
+                segmentRegistry.Add("DS", new SegmentRegister()); //Data Segment
+                segmentRegistry.Add("ES", new SegmentRegister()); //Extra Segment
+                segmentRegistry.Add("SS", new SegmentRegister()); //Slack Segment
+            }
+            public static void InitializeStatusRegistry()
+            {
+                //statusRegistry.Add("", new Flag()); //16 Unused FLag
+                //statusRegistry.Add("", new Flag()); //15 Unused FLag
+                //statusRegistry.Add("", new Flag()); //14 Unused FLag
+                //statusRegistry.Add("", new Flag()); //13 Unused FLag
+                //statusRegistry.Add("", new Flag()); //6  Unused FLag
+                //statusRegistry.Add("", new Flag()); //4  Unused FLag
+                //statusRegistry.Add("", new Flag()); //2  Unused FLag
+
+                statusRegistry.Add("OF", new Flag()); //12 Overflow Flag
+                statusRegistry.Add("DF", new Flag()); //11 Direction Flag
+                statusRegistry.Add("IF", new Flag()); //10 Interrupt FLag
+                statusRegistry.Add("TF", new Flag()); //9  Trap Flag
+                statusRegistry.Add("SF", new Flag()); //8  Sign Flag
+                statusRegistry.Add("ZF", new Flag()); //7  Zero Flag
+                statusRegistry.Add("AF", new Flag()); //5  Auxillary Carry Flag
+                statusRegistry.Add("PF", new Flag()); //3  Parity Flag
+                statusRegistry.Add("CF", new Flag()); //1  Carry Flag
+            }
+
+
+
+
+            public static void ClearGeneralRegistry()
+            {
+                generalRegistry.Clear();
+                InitializeGeneralRegistry();
+            }
+            public static void ClearIndexRegistry()
+            {
+                indexRegistry.Clear();
+                InitializeIndexRegistry();
+            }
+            public static void ClearSegmentRegistry()
+            {
+                segmentRegistry.Clear();
+                InitializeSegmentRegistry();
+            }
+            public static void ClearStatusRegistry()
+            {
+                statusRegistry.Clear();
+                InitializeStatusRegistry();
+            }
+            public static void ClearAllRegistry()
+            {
+                ClearGeneralRegistry();
+                ClearIndexRegistry();
+                ClearSegmentRegistry();
+                ClearStatusRegistry();
+            }
+            public static void InitializeAllRegistry()
+            {
+                InitializeGeneralRegistry();
+                InitializeIndexRegistry();
+                InitializeSegmentRegistry();
+                InitializeStatusRegistry();
+            }
+
+            public static void ClearMemory()
+            {
+                memory.Clear();
+            }
+            public static bool MemoryExists(long index)
+            {
+                try
+                {
+                    long a = memory[index];
+                }
+                catch(Exception)
+                {
+                    return false;
+                }
+                return true;
+            }
+            public static void DisplayMemory()
+            {
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine("Memory:");
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.WriteLine();
+                Console.WriteLine($"Memory used: {memory.Count()}");
+                foreach (KeyValuePair<long, long> row in Storage.memory)
+                {
+                    Console.WriteLine($"[{row.Key}] - {row.Value}");
+                }
+            }
+
+
+            public static void DisplayGeneralRegistry() //Will need optimization, to much code
+            {
+                //"   AX          BX          CX          DX  " Effect
+                //"  12345       12345       12345       12345"
+                //" AH   AL     BH   BL     CH   CL     DH   DL "
+                //" 123  123    123  123    123  123    123  123"
+
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine("   AX          BX          CX          DX  "); //Line 1
+                Console.ForegroundColor = ConsoleColor.Gray;
+
+
+                Console.Write("  "); //Line 2
+                Console.Write(generalRegistry["AX"].Value);
+                for(int i = 0; i < 5 - (generalRegistry["AX"].Value.ToString().Length); i++)
+                    Console.Write(" ");
+                Console.Write("       ");
+                Console.Write(generalRegistry["BX"].Value);
+                for(int i = 0; i < 5 - (generalRegistry["BX"].Value.ToString().Length); i++)
+                    Console.Write(" ");
+                Console.Write("       ");
+                Console.Write(generalRegistry["CX"].Value);
+                for(int i = 0; i < 5 - (generalRegistry["CX"].Value.ToString().Length); i++)
+                    Console.Write(" ");
+                Console.Write("       ");
+                Console.Write(generalRegistry["DX"].Value);
+                Console.WriteLine();
+
+
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine(" AH   AL     BH   BL     CH   CL     DH   DL "); //Line 3
+                Console.ForegroundColor = ConsoleColor.Gray;
+
+
+                Console.Write(" "); //Line 4
+                Console.Write(generalRegistry["AX"].H);
+                for(int i = 0; i < 3 - (generalRegistry["AX"].H.ToString().Length); i++)
+                    Console.Write(" ");
+                Console.Write("  ");
+                Console.Write(generalRegistry["AX"].L);
+                for(int i = 0; i < 3 - (generalRegistry["AX"].L.ToString().Length); i++)
+                    Console.Write(" ");
+                Console.Write("    ");
+                Console.Write(generalRegistry["BX"].H);
+                for(int i = 0; i < 3 - (generalRegistry["BX"].H.ToString().Length); i++)
+                    Console.Write(" ");
+                Console.Write("  ");
+                Console.Write(generalRegistry["BX"].L);
+                for(int i = 0; i < 3 - (generalRegistry["BX"].L.ToString().Length); i++)
+                    Console.Write(" ");
+                Console.Write("    ");
+                Console.Write(generalRegistry["CX"].H);
+                for(int i = 0; i < 3 - (generalRegistry["CX"].H.ToString().Length); i++)
+                    Console.Write(" ");
+                Console.Write("  ");
+                Console.Write(generalRegistry["CX"].L);
+                for(int i = 0; i < 3 - (generalRegistry["CX"].L.ToString().Length); i++)
+                    Console.Write(" ");
+                Console.Write("    ");
+                Console.Write(generalRegistry["DX"].H);
+                for(int i = 0; i < 3 - (generalRegistry["DX"].H.ToString().Length); i++)
+                    Console.Write(" ");
+                Console.Write("  ");
+                Console.Write(generalRegistry["DX"].L);
+                for(int i = 0; i < 3 - (generalRegistry["DX"].L.ToString().Length); i++)
+                    Console.Write(" ");
+                Console.WriteLine();
+
+            }
+        }
+    }
+}
